@@ -1,0 +1,22 @@
+ARG BUILD_PLATFORM=linux/amd64
+ARG TARGET_PLATFORM=linux/amd64
+
+FROM --platform=${BUILD_PLATFORM} golang:1.16-alpine AS builder
+ARG COMPILE_GOOS="--goos linux"
+ARG COMPILE_GOARCH="--goarch amd64"
+ARG COMPILE_GOARM=""
+COPY . /build
+WORKDIR /build
+RUN go run build.go ${COMPILE_GOOS} ${COMPILE_GOARCH} ${COMPILE_GOARM}
+
+
+FROM --platform=${TARGET_PLATFORM} alpine:latest
+COPY --from=builder /build/restic /usr/bin
+RUN apk add --update --no-cache ca-certificates fuse openssh-client tzdata
+
+ENTRYPOINT ["/usr/bin/restic"]
+
+# Run from project root
+# docker build -t slimbean/restic -f docker/Dockerfile.multi .
+# docker build --build-arg "TARGET_PLATORM=linux/arm/7" --build-arg="COMPILE_GOARCH=--goarch arm" --build-arg="COMPILE_GOARM=--goarm 7" -t slimbean/restic-arm7 -f docker/Dockerfile.multi .
+# docker build --build-arg "TARGET_PLATORM=linux/arm64" --build-arg="COMPILE_GOARCH=--goarch arm64" -t slimbean/restic-arm64:0.12.0 -f docker/Dockerfile.multi .
